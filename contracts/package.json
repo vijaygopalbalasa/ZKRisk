@@ -1,0 +1,29 @@
+{
+  "name": "zkrisk-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for zkRisk-Agent lending protocol",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "setup": "node scripts/setup-env.js",
+    "deploy:amoy": "hardhat run scripts/deploy.js --network polygonAmoy",
+    "verify:amoy": "hardhat run scripts/verify.js --network polygonAmoy",
+    "check": "hardhat run scripts/check-deployment.js --network polygonAmoy",
+    "deploy:full": "npm run deploy:amoy && npm run verify:amoy",
+    "lint": "npx solhint 'contracts/**/*.sol'",
+    "clean": "hardhat clean",
+    "node": "hardhat node"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.0",
+    "hardhat": "^2.26.3"
+  },
+  "dependencies": {
+    "@hyperlane-xyz/core": "^3.0.0",
+    "@openzeppelin/contracts": "^5.0.0",
+    "@pythnetwork/pyth-sdk-solidity": "^2.2.0",
+    "@selfxyz/contracts": "^1.0.0",
+    "dotenv": "^16.0.0"
+  }
+}

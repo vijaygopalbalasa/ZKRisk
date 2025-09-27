@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>zkRisk-Agent | AI-Powered Under-Collateralized Lending</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+
+    <!-- Meta tags for social sharing -->
+    <meta name="description" content="AI-powered lending protocol with zero-knowledge identity verification and real-time volatility adaptation">
+    <meta name="keywords" content="DeFi, lending, AI, zero-knowledge, volatility, Polygon, Pyth, Self">
+    <meta property="og:title" content="zkRisk-Agent - AI-Powered Under-Collateralized Lending">
+    <meta property="og:description" content="Borrow up to 180% of your collateral with AI risk assessment">
+    <meta property="og:type" content="website">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --surface-light: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #64748b;
+            --border: #374151;
+            --success: #22c55e;
+            --gradient: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .connect-btn {
+            background: var(--gradient);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .connect-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .connect-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Main Content */
+        .main {
+            padding: 2rem 0;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 4rem 0;
+            background: radial-gradient(circle at center, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--secondary);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Trading Interface */
+        .trading-section {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .chart-container {
+            background: var(--surface);
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            height: 500px;
+        }
+
+        .trading-panel {
+            background: var(--surface);
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            height: fit-content;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-connected {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--success);
+        }
+
+        .status-disconnected {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .risk-display {
+            background: var(--background);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .risk-metric {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .risk-value {
+            font-weight: 600;
+        }
+
+        .risk-lambda {
+            font-size: 1.5rem;
+            color: var(--secondary);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--surface-light);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--gradient);
+            transition: width 0.3s ease;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            text-align: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Identity Verification */
+        .identity-section {
+            background: var(--surface);
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .verification-status {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-pending {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .status-verified {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--success);
+        }
+
+        .qr-container {
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+            border: 2px dashed var(--border);
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .trading-section {
+                grid-template-columns: 1fr;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: var(--success);
+        }
+
+        .notification.error {
+            background: var(--danger);
+        }
+
+        .notification.warning {
+            background: var(--warning);
+        }
+
+        /* Chart styling */
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <nav class="nav">
+                    <div class="logo">
+                        <i class="fas fa-robot"></i>
+                        zkRisk-Agent
+                    </div>
+                    <ul class="nav-links">
+                        <li><a href="#lend">Lend</a></li>
+                        <li><a href="#borrow">Borrow</a></li>
+                        <li><a href="#analytics">Analytics</a></li>
+                        <li><a href="#docs">Docs</a></li>
+                    </ul>
+                    <button class="connect-btn" id="connectWallet">
+                        <span id="connectText">Connect Wallet</span>
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div class="container">
+                <!-- Hero Section -->
+                <section class="hero">
+                    <h1>AI-Powered Under-Collateralized Lending</h1>
+                    <p>
+                        Borrow up to 180% of your collateral value with real-time AI risk assessment
+                        and zero-knowledge identity verification.
+                    </p>
+
+                    <!-- Stats -->
+                    <div class="stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalTvl">$0</div>
+                            <div class="stat-label">Total Value Locked</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="avgLtv">0%</div>
+                            <div class="stat-label">Average LTV</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="activeLoans">0</div>
+                            <div class="stat-label">Active Loans</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="currentLambda">1.0x</div>
+                            <div class="stat-label">Current λ (SHIB)</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Identity Verification Section -->
+                <section class="identity-section" id="identitySection">
+                    <div class="panel-header">
+                        <h3 class="panel-title">
+                            <i class="fas fa-shield-alt"></i>
+                            Zero-Knowledge Identity Verification
+                        </h3>
+                        <div class="status-indicator" id="identityStatus">
+                            <i class="fas fa-clock"></i>
+                            Pending Verification
+                        </div>
+                    </div>
+
+                    <div class="verification-status status-pending" id="verificationStatus">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>
+                            <strong>Identity verification required</strong>
+                            <p>Prove you're over 18 and from a low-risk country without revealing personal data</p>
+                        </div>
+                    </div>
+
+                    <div class="qr-container" id="qrContainer">
+                        <div style="text-align: center;">
+                            <i class="fas fa-qrcode" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                            <p>Click "Verify Identity" to generate QR code</p>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" id="verifyIdentity" style="width: 100%;">
+                        <i class="fas fa-user-check"></i>
+                        Verify Identity with Self Protocol
+                    </button>
+                </section>
+
+                <!-- Trading Interface -->
+                <section class="trading-section">
+                    <!-- Chart -->
+                    <div class="chart-container">
+                        <div class="panel-header">
+                            <h3 class="panel-title">
+                                <i class="fas fa-chart-line"></i>
+                                SHIB/USD Volatility
+                            </h3>
+                            <div class="status-indicator status-connected" id="chartStatus">
+                                <i class="fas fa-wifi"></i>
+                                Live Data
+                            </div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="volatilityChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Trading Panel -->
+                    <div class="trading-panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Borrow USDC</h3>
+                            <div class="status-indicator" id="connectionStatus">
+                                <i class="fas fa-times-circle"></i>
+                                Disconnected
+                            </div>
+                        </div>
+
+                        <!-- Collateral Input -->
+                        <div class="form-group">
+                            <label class="form-label">Collateral (SHIB)</label>
+                            <input
+                                type="number"
+                                class="form-input"
+                                id="collateralInput"
+                                placeholder="0.00"
+                                step="1000000"
+                            >
+                            <small style="color: var(--text-muted);">
+                                Balance: <span id="shibBalance">0</span> SHIB
+                            </small>
+                        </div>
+
+                        <!-- Risk Assessment Display -->
+                        <div class="risk-display">
+                            <div class="risk-metric">
+                                <span>Current Volatility:</span>
+                                <span class="risk-value" id="currentVolatility">15.2%</span>
+                            </div>
+                            <div class="risk-metric">
+                                <span>Risk Multiplier (λ):</span>
+                                <span class="risk-value risk-lambda" id="riskLambda">1.2x</span>
+                            </div>
+                            <div class="risk-metric">
+                                <span>Max Borrow:</span>
+                                <span class="risk-value" id="maxBorrow">$0</span>
+                            </div>
+
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="riskProgress" style="width: 60%"></div>
+                            </div>
+                            <small style="color: var(--text-muted);">Risk Level: <span id="riskLevel">Medium</span></small>
+                        </div>
+
+                        <!-- Borrow Amount -->
+                        <div class="form-group">
+                            <label class="form-label">Borrow Amount (USDC)</label>
+                            <input
+                                type="number"
+                                class="form-input"
+                                id="borrowInput"
+                                placeholder="0.00"
+                                step="0.01"
+                            >
+                            <small style="color: var(--text-muted);">
+                                Available: <span id="availableBorrow">$0</span>
+                            </small>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary" id="depositBtn" disabled>
+                                <i class="fas fa-plus-circle"></i>
+                                Deposit
+                            </button>
+                            <button class="btn btn-primary" id="borrowBtn" disabled>
+                                <i class="fas fa-coins"></i>
+                                Borrow
+                            </button>
+                        </div>
+
+                        <!-- Loan Info -->
+                        <div id="loanInfo" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--background); border-radius: 0.5rem;">
+                            <h4 style="margin-bottom: 0.5rem;">Your Loan</h4>
+                            <div class="risk-metric">
+                                <span>Collateral:</span>
+                                <span id="userCollateral">0 SHIB</span>
+                            </div>
+                            <div class="risk-metric">
+                                <span>Debt:</span>
+                                <span id="userDebt">$0 USDC</span>
+                            </div>
+                            <div class="risk-metric">
+                                <span>Health Factor:</span>
+                                <span id="healthFactor">∞</span>
+                            </div>
+                            <button class="btn btn-secondary" id="repayBtn" style="width: 100%; margin-top: 0.5rem;">
+                                <i class="fas fa-undo"></i>
+                                Repay Loan
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Notification Container -->
+        <div id="notifications"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>

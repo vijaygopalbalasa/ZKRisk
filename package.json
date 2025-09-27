@@ -1,0 +1,29 @@
+{
+  "name": "zkrisk-agent",
+  "version": "1.0.0",
+  "description": "ZK-powered AI agent for under-collateralized lending with real-time volatility adaptation",
+  "main": "index.js",
+  "scripts": {
+    "install:all": "npm install && cd contracts && npm install && cd ../frontend && npm install && cd ../fluence && npm install",
+    "compile": "cd contracts && npx hardhat compile",
+    "test": "cd contracts && npx hardhat test",
+    "test:unit": "cd contracts && npx hardhat test --grep 'Unit'",
+    "test:e2e": "cd contracts && npx hardhat test --grep 'E2E'",
+    "deploy:contracts": "cd contracts && npx hardhat run scripts/deploy.js --network polygonAmoy",
+    "deploy:fluence": "cd fluence && npm run deploy",
+    "build:circuit": "cd self/zk-circuit && npm run build",
+    "prove:self": "cd self/scripts && node compile-and-mint.js",
+    "dev": "cd frontend && npm run dev",
+    "node": "cd contracts && npx hardhat node --fork https://rpc-amoy.polygon.technology"
+  },
+  "keywords": ["zk", "defi", "lending", "ai", "agent", "volatility", "polygon", "pyth"],
+  "author": "zkRisk Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0"
+  }
+}
