@@ -31,6 +31,7 @@ contract RealOracle is Ownable, ReentrancyGuard {
     // Feed identifiers
     bytes32 public constant USDC_USD_FEED = keccak256("USDC/USD");
     bytes32 public constant ETH_USD_FEED = keccak256("ETH/USD");
+    bytes32 public constant SHIB_USD_FEED = keccak256("SHIB/USD");
 
     // Oracle configuration
     uint256 public constant MAX_PRICE_AGE = 3600; // 1 hour max age
@@ -386,9 +387,18 @@ contract RealOracle is Ownable, ReentrancyGuard {
             volatility: 75e6 // 75% volatility
         });
 
+        // SHIB/USD - real memecoin with high volatility
+        priceFeeds[SHIB_USD_FEED] = PriceData({
+            price: 2500, // $0.000025 with 8 decimals
+            confidence: 9500, // 95% confidence
+            timestamp: block.timestamp,
+            volatility: 120e6 // 120% volatility (very high for memecoins)
+        });
+
         // Initialize volatility tracking
         volatilityData[USDC_USD_FEED].currentVolatility = 1e6;
         volatilityData[ETH_USD_FEED].currentVolatility = 75e6;
+        volatilityData[SHIB_USD_FEED].currentVolatility = 120e6;
     }
 
     /**
@@ -402,6 +412,16 @@ contract RealOracle is Ownable, ReentrancyGuard {
         authorizedUpdaters.push(updater);
 
         emit AuthorizedUpdaterAdded(updater);
+    }
+
+    /**
+     * @dev Get SHIB price specifically for SHIB lending
+     * @return price Current SHIB price in USD (8 decimals)
+     */
+    function getShibPrice() external view returns (uint256 price) {
+        PriceData memory data = priceFeeds[SHIB_USD_FEED];
+        require(data.price > 0, "SHIB price not initialized");
+        return data.price;
     }
 
     /**

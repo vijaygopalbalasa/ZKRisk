@@ -16,6 +16,10 @@ from datetime import datetime
 import requests
 import websocket
 import threading
+import asyncio
+
+# Import enhanced AI system
+from enhanced_ai import EnhancedVolatilityPredictor
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -34,18 +38,23 @@ class VolatilityInferenceService:
         self.session = None
         self.model_info = None
         self.scaler = None
+        self.enhanced_predictor = None
 
         # Real-time data storage
         self.price_history = []
         self.volatility_cache = {}
 
-        # Pyth WebSocket connection for production
+        # Pyth WebSocket connection for real crypto price feeds
         self.ws = None
         self.pyth_feeds = {
-            'USDC/USD': '0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a',  # Real USDC/USD feed
-            'ETH/USD': '0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace',   # Real ETH/USD feed
-            'BTC/USD': '0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43'    # Real BTC/USD feed
+            'ETH/USD': '0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace',  # Real ETH/USD feed
+            'BTC/USD': '0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43',  # Real BTC/USD feed
+            'USDC/USD': '0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a', # Real USDC/USD feed
+            'SOL/USD': '0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d'  # Real SOL/USD feed
         }
+
+        # Hermes client for real price data
+        self.hermes_endpoint = 'https://hermes.pyth.network'
 
         # Production configuration
         self.config = {
@@ -59,6 +68,7 @@ class VolatilityInferenceService:
         }
 
         self.load_model()
+        self.start_enhanced_predictor()
         self.start_price_monitoring()
 
     def load_model(self):
@@ -92,11 +102,24 @@ class VolatilityInferenceService:
                     self.scaler = pickle.load(f)
                 logger.info("✅ Feature scaler loaded")
 
+            # Initialize enhanced AI volatility predictor
+            self.enhanced_predictor = EnhancedVolatilityPredictor(self.session)
+            logger.info("🧠 Enhanced AI volatility predictor initialized")
+
             return True
 
         except Exception as e:
             logger.error(f"❌ Model loading failed: {e}")
             return False
+
+    def start_enhanced_predictor(self):
+        """Start enhanced AI predictor with real-time price collection"""
+        try:
+            if self.enhanced_predictor:
+                self.enhanced_predictor.start_price_collection()
+                logger.info("🚀 Enhanced AI predictor price collection started")
+        except Exception as e:
+            logger.error(f"❌ Failed to start enhanced predictor: {e}")
 
     def start_price_monitoring(self):
         """Start real-time price monitoring from Pyth"""
@@ -236,27 +259,105 @@ class VolatilityInferenceService:
 
     def calculate_lambda(self, volatility):
         """
-        Calculate risk multiplier (lambda) based on volatility
-        Higher volatility = lower lambda (more conservative lending)
+        Calculate risk multiplier (lambda) based on SHIB volatility
+        SHIB-specific: Higher volatility = lower lambda (more conservative)
+        Adapted for memecoin volatility patterns
         """
         try:
-            # Normalize volatility to 0-1 scale
-            vol_normalized = min(volatility / 0.5, 1.0)  # Cap at 50% volatility
+            # SHIB-specific volatility normalization (higher ceiling for memecoins)
+            vol_normalized = min(volatility / 1.2, 1.0)  # Cap at 120% volatility for SHIB
 
-            # Calculate lambda using inverse relationship
-            # Lambda ranges from 0.3 (high vol) to 1.8 (low vol)
-            max_lambda = 1.8
-            min_lambda = 0.3
-            lambda_value = max_lambda - vol_normalized * (max_lambda - min_lambda)
+            # SHIB memecoin lambda calculation with tighter ranges
+            # Lambda ranges from 0.5 (high vol) to 1.8 (low vol) - more conservative for memecoins
+            max_lambda = 1.8  # Maximum LTV when SHIB is stable
+            min_lambda = 0.5  # Minimum LTV when SHIB is highly volatile
+
+            # Apply exponential curve for memecoin risk (more aggressive curve)
+            lambda_value = max_lambda - (vol_normalized ** 1.5) * (max_lambda - min_lambda)
+
+            # SHIB-specific adjustments
+            if volatility > 0.8:  # Very high volatility
+                lambda_value *= 0.7  # Extra conservative
+            elif volatility > 0.5:  # High volatility
+                lambda_value *= 0.85  # Conservative
+
+            # Paper-hands protection: Cap maximum lambda for memecoins
+            lambda_value = min(lambda_value, 1.6)
 
             # Ensure lambda is in valid range
             lambda_value = max(min_lambda, min(lambda_value, max_lambda))
 
+            logger.info(f"🐕 SHIB Lambda: vol={volatility:.3f} → λ={lambda_value:.3f}")
             return lambda_value
 
         except Exception as e:
-            logger.error(f"❌ Lambda calculation failed: {e}")
-            return 1.0  # Default safe value
+            logger.error(f"❌ SHIB Lambda calculation failed: {e}")
+            return 0.8  # Conservative default for memecoins
+
+    def fetch_real_price_data(self, symbol='SHIB/USD'):
+        """Fetch real price data from Pyth Network Hermes API"""
+        try:
+            feed_id = self.pyth_feeds.get(symbol)
+            if not feed_id:
+                logger.error(f"❌ No feed ID found for {symbol}")
+                return None
+
+            # Fetch latest price from Hermes
+            url = f"{self.hermes_endpoint}/v2/updates/price/latest"
+            params = {
+                'ids[]': feed_id,
+                'parsed': 'true'
+            }
+
+            logger.info(f"🔄 Fetching real {symbol} price from Pyth Network...")
+
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+
+            data = response.json()
+
+            if 'parsed' not in data or not data['parsed']:
+                logger.error(f"❌ No parsed data received for {symbol}")
+                return None
+
+            price_data = data['parsed'][0]
+            price_info = price_data['price']
+
+            # Extract price with correct exponent
+            price = float(price_info['price']) * (10 ** price_info['expo'])
+            confidence = float(price_info['conf']) * (10 ** price_info['expo'])
+            timestamp = price_info['publish_time']
+
+            # Store price for volatility calculation
+            self.price_history.append({
+                'price': price,
+                'timestamp': timestamp,
+                'symbol': symbol
+            })
+
+            # Keep only last 100 prices
+            if len(self.price_history) > 100:
+                self.price_history.pop(0)
+
+            logger.info(f"✅ {symbol} price: ${price:.8f} (±{confidence:.8f})")
+
+            return {
+                'symbol': symbol,
+                'price': price,
+                'confidence': confidence,
+                'timestamp': timestamp,
+                'feed_id': feed_id
+            }
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Network error fetching {symbol} price: {e}")
+            return None
+        except KeyError as e:
+            logger.error(f"❌ Unexpected data format for {symbol}: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"❌ Error fetching {symbol} price: {e}")
+            return None
 
     def calculate_volatility_from_prices(self, price_window=24):
         """Calculate volatility from recent price history"""
@@ -330,20 +431,22 @@ def infer_volatility():
             data = request.get_json()
             volatility_sequence = data.get('volatility', [])
 
-        # Validate input
-        if not volatility_sequence:
-            # Calculate from recent price data
-            current_vol = inference_service.calculate_volatility_from_prices()
-            volatility_sequence = [current_vol] * 5  # Replicate for sequence
+        # Use enhanced AI predictor for real LSTM volatility prediction
+        symbol = request.args.get('symbol', 'ETH/USD')
 
-        # Prepare model input
-        model_input = inference_service.prepare_input_data(volatility_sequence)
+        if inference_service.enhanced_predictor:
+            # Get enhanced prediction with real price data
+            predicted_volatility, metadata = inference_service.enhanced_predictor.predict_volatility_lstm(symbol)
+            lambda_value = inference_service.enhanced_predictor.calculate_lambda_coefficient(predicted_volatility)
+        else:
+            # Fallback to legacy method
+            if not volatility_sequence:
+                current_vol = inference_service.calculate_volatility_from_prices()
+                volatility_sequence = [current_vol] * 5
 
-        # Predict volatility
-        predicted_volatility = inference_service.predict_volatility(model_input)
-
-        # Calculate lambda (risk multiplier)
-        lambda_value = inference_service.calculate_lambda(predicted_volatility)
+            model_input = inference_service.prepare_input_data(volatility_sequence)
+            predicted_volatility = inference_service.predict_volatility(model_input)
+            lambda_value = inference_service.calculate_lambda(predicted_volatility)
 
         # Scale lambda to integer (multiply by 1000)
         lambda_1000 = int(lambda_value * 1000)
@@ -378,24 +481,121 @@ def infer_volatility():
         }), 500
 
 
-@app.route('/volatility', methods=['GET'])
-def get_current_volatility():
-    """Get current volatility from price history"""
+@app.route('/pyth/price/<symbol>', methods=['GET'])
+def get_real_price(symbol):
+    """Get real-time price from Pyth Network"""
     try:
+        # Normalize symbol format
+        if symbol.lower() == 'eth':
+            symbol = 'ETH/USD'
+        elif symbol.lower() == 'btc':
+            symbol = 'BTC/USD'
+        elif symbol.lower() == 'usdc':
+            symbol = 'USDC/USD'
+        elif symbol.lower() == 'sol':
+            symbol = 'SOL/USD'
+
+        # Fetch real price data
+        price_data = inference_service.fetch_real_price_data(symbol)
+
+        if not price_data:
+            return jsonify({
+                'error': f'Failed to fetch price data for {symbol}',
+                'symbol': symbol,
+                'timestamp': datetime.now().isoformat()
+            }), 500
+
+        # Calculate volatility from real price history
         volatility = inference_service.calculate_volatility_from_prices()
         lambda_value = inference_service.calculate_lambda(volatility)
 
-        return jsonify({
+        result = {
+            'symbol': price_data['symbol'],
+            'price': price_data['price'],
+            'confidence': price_data['confidence'],
+            'timestamp': price_data['timestamp'],
             'volatility': volatility,
             'lambda': lambda_value,
             'lambda1000': int(lambda_value * 1000),
-            'price_history_length': len(inference_service.price_history),
-            'last_price': inference_service.price_history[-1] if inference_service.price_history else None,
+            'feed_id': price_data['feed_id'],
+            'source': 'Pyth Network Hermes API'
+        }
+
+        logger.info(f"📊 Real price data for {symbol}: ${price_data['price']:.8f}")
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"❌ Real price fetch failed: {e}")
+        return jsonify({
+            'error': str(e),
+            'symbol': symbol,
             'timestamp': datetime.now().isoformat()
-        })
+        }), 500
+
+@app.route('/volatility', methods=['GET'])
+def get_current_volatility():
+    """Get current volatility from enhanced AI predictor"""
+    try:
+        symbol = request.args.get('symbol', 'ETH/USD')
+
+        if inference_service.enhanced_predictor:
+            # Get comprehensive prediction summary with real data
+            summary = inference_service.enhanced_predictor.get_prediction_summary(symbol)
+
+            return jsonify({
+                'volatility': summary['lstm_volatility'],
+                'historical_volatility': summary['historical_volatility'],
+                'lambda': summary['lambda_coefficient'],
+                'lambda1000': summary['lambda1000'],
+                'symbol': summary['symbol'],
+                'current_price': summary['current_price'],
+                'confidence': summary['confidence'],
+                'method': summary['prediction_method'],
+                'risk_level': summary['risk_assessment'],
+                'data_points': summary['data_points'],
+                'timestamp': summary['last_update']
+            })
+        else:
+            # Fallback to legacy method
+            volatility = inference_service.calculate_volatility_from_prices()
+            lambda_value = inference_service.calculate_lambda(volatility)
+
+            return jsonify({
+                'volatility': volatility,
+                'lambda': lambda_value,
+                'lambda1000': int(lambda_value * 1000),
+                'price_history_length': len(inference_service.price_history),
+                'last_price': inference_service.price_history[-1] if inference_service.price_history else None,
+                'timestamp': datetime.now().isoformat()
+            })
 
     except Exception as e:
         logger.error(f"❌ Volatility calculation failed: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# New enhanced endpoint for price history summary
+@app.route('/enhanced/price-history', methods=['GET'])
+def get_enhanced_price_history():
+    """Get comprehensive price history summary from enhanced predictor"""
+    try:
+        if inference_service.enhanced_predictor:
+            summary = inference_service.enhanced_predictor.get_price_history_summary()
+            return jsonify({
+                'success': True,
+                'price_data': summary,
+                'timestamp': datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Enhanced predictor not available',
+                'timestamp': datetime.now().isoformat()
+            }), 503
+
+    except Exception as e:
+        logger.error(f"❌ Enhanced price history failed: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -459,6 +659,88 @@ def demo_inference():
     except Exception as e:
         logger.error(f"❌ Demo failed: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/self/verify', methods=['POST'])
+def verify_self_protocol():
+    """Self Protocol verification endpoint"""
+    try:
+        data = request.get_json()
+
+        # Extract verification data
+        proof = data.get('proof')
+        user_address = data.get('userAddress')
+        contract_address = data.get('contractAddress')
+        nullifier_hash = data.get('nullifierHash')
+
+        logger.info(f"🔐 Verifying Self Protocol proof for {user_address}")
+
+        # Disclosure configuration (must match frontend)
+        disclosure_config = {
+            'minimumAge': 18,
+            'excludedCountries': ['US', 'CN'],
+            'ofac': True
+        }
+
+        # Mock verification for demo - in production, use actual Self Protocol verifier
+        verification_result = {
+            'success': True,
+            'nullifierHash': nullifier_hash or f"0x{user_address[-8:]}{''.join([hex(ord(c))[2:] for c in contract_address[-4:]])}",
+            'disclosureData': {
+                'ageVerified': True,
+                'countryVerified': True,
+                'ofacClear': True,
+                'humanVerified': True,
+                'minimumAge': disclosure_config['minimumAge']
+            },
+            'userAddress': user_address,
+            'contractAddress': contract_address,
+            'timestamp': datetime.now().isoformat(),
+            'verificationLevel': 'ENHANCED'
+        }
+
+        logger.info(f"✅ Self Protocol verification successful for {user_address}")
+
+        return jsonify(verification_result)
+
+    except Exception as e:
+        logger.error(f"❌ Self Protocol verification failed: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
+
+@app.route('/self/status/<user_address>', methods=['GET'])
+def get_self_verification_status(user_address):
+    """Get Self Protocol verification status for user"""
+    try:
+        contract_address = request.args.get('contract', '')
+
+        logger.info(f"📋 Checking Self Protocol status for {user_address}")
+
+        # Mock status check - in production, query Self Protocol registry
+        status = {
+            'verified': True,
+            'nullifierHash': f"0x{user_address[-8:]}verified",
+            'verificationLevel': 'ENHANCED',
+            'ageVerified': True,
+            'countryVerified': True,
+            'ofacClear': True,
+            'humanVerified': True,
+            'verificationDate': datetime.now().isoformat(),
+            'expiryDate': (datetime.now().replace(year=datetime.now().year + 1)).isoformat()
+        }
+
+        return jsonify(status)
+
+    except Exception as e:
+        logger.error(f"❌ Self Protocol status check failed: {e}")
+        return jsonify({
+            'verified': False,
+            'error': str(e)
+        }), 500
 
 
 if __name__ == '__main__':

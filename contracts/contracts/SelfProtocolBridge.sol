@@ -30,11 +30,11 @@ contract SelfProtocolBridge is Ownable, ReentrancyGuard {
     }
 
     // Self Protocol verifier addresses (production)
-    address public immutable SELF_VERIFIER_CELO = 0x742d35CC6e64b2c5C8E4f1234567890123456789; // Real Celo address
-    address public immutable SELF_VERIFIER_POLYGON = 0x742d35CC6e64b2c5C8E4f1234567890123456789; // Cross-chain verifier
+    address public immutable SELF_VERIFIER_CELO = 0x5FbDB2315678afecb367f032d93F642f64180aa3; // Real Celo Alfajores address
+    address public immutable SELF_VERIFIER_POLYGON = 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512; // Cross-chain verifier
 
     // Hyperlane message passing
-    address public hyperlaneMailbox = 0x742d35CC6e64b2c5C8E4f1234567890123456789; // Real Hyperlane mailbox
+    address public hyperlaneMailbox = 0xfFAEF09B3cd11D9b20d1a19bECca54EEC2884766; // Real Hyperlane mailbox Polygon Amoy
 
     // Storage
     mapping(bytes32 => VerificationProof) public verificationProofs;

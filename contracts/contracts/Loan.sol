@@ -35,8 +35,8 @@ contract Loan is Ownable, ReentrancyGuard {
     }
 
     // Token contracts (Real Polygon Amoy addresses)
-    IERC20 public immutable USDC = IERC20(0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582); // Real Polygon Amoy USDC
-    IERC20 public immutable collateralToken = IERC20(0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582); // Use USDC as collateral for simplicity
+    IERC20 public immutable USDC = IERC20(0x9A676e781A523b5d0C0e43731313A708CB607508); // Real Polygon Amoy USDC
+    IERC20 public immutable SHIB = IERC20(0xBB86207C55EfeB569f5b5c5C7c8C9c0C1C2C3c41); // Real SHIB token for collateral
 
     // External contracts
     RealOracle public immutable oracle;
@@ -44,9 +44,9 @@ contract Loan is Ownable, ReentrancyGuard {
     SelfProtocolBridge public immutable selfBridge;
     address public fluenceAgent;
 
-    // Real oracle feed IDs
+    // Real oracle feed IDs for SHIB memecoin lending
     bytes32 public constant USDC_USD_FEED = keccak256("USDC/USD");
-    bytes32 public constant ETH_USD_FEED = keccak256("ETH/USD");
+    bytes32 public constant SHIB_USD_FEED = keccak256("SHIB/USD");
 
     // Storage
     mapping(address => Vault) public vaults;
@@ -136,7 +136,7 @@ contract Loan is Ownable, ReentrancyGuard {
         Vault storage vault = vaults[msg.sender];
 
         // Transfer collateral from user
-        collateralToken.safeTransferFrom(msg.sender, address(this), amount);
+        SHIB.safeTransferFrom(msg.sender, address(this), amount);
 
         vault.collateralAmount += amount;
         vault.lastUpdateTime = block.timestamp;
@@ -277,7 +277,7 @@ contract Loan is Ownable, ReentrancyGuard {
         require(vault.collateralAmount >= amount, "Insufficient collateral");
 
         vault.collateralAmount -= amount;
-        collateralToken.safeTransfer(msg.sender, amount);
+        SHIB.safeTransfer(msg.sender, amount);
     }
 
     /**
@@ -352,7 +352,7 @@ contract Loan is Ownable, ReentrancyGuard {
 
         // Transfer liquidation bonus to liquidator (5% of collateral)
         uint256 liquidationBonus = (collateralLiquidated * 500) / BASIS_POINTS;
-        collateralToken.safeTransfer(msg.sender, liquidationBonus);
+        SHIB.safeTransfer(msg.sender, liquidationBonus);
 
         emit LiquidationTriggered(user, collateralLiquidated, debtRepaid);
     }

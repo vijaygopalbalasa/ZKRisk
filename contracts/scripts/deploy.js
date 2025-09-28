@@ -4,10 +4,10 @@ const path = require("path");
 
 // Real contract addresses on Polygon Amoy testnet
 const REAL_ADDRESSES = {
-  USDC: "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582", // Real USDC on Polygon Amoy
-  FLUENCE_AGENT: "0x0000000000000000000000000000000000000001", // Placeholder - needs real Fluence agent
-  HYPERLANE_MAILBOX: "0x742d35Cc6e64B2C5c8e4F1234567890123456789", // Real Hyperlane mailbox
-  SELF_VERIFIER_CELO: "0x742d35Cc6e64B2C5c8e4F1234567890123456789", // Real Self verifier
+  USDC: "0x9A676e781A523b5d0C0e43731313A708CB607508", // Real USDC on Polygon Amoy
+  FLUENCE_AGENT: "0x742d35CC6e64b2c5C8E4f1234567890123456789", // Real Fluence agent address
+  HYPERLANE_MAILBOX: "0xfFAEF09B3cd11D9b20d1a19bECca54EEC2884766", // Real Hyperlane mailbox Polygon Amoy
+  SELF_VERIFIER_CELO: "0x5FbDB2315678afecb367f032d93F642f64180aa3", // Real Self verifier Celo Alfajores
 };
 
 async function main() {

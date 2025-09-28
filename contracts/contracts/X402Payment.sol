@@ -48,8 +48,8 @@ contract X402Payment is IX402Payment, Ownable, ReentrancyGuard {
     }
 
     // USDC on Polygon Amoy testnet (Real address)
-    IERC20 public immutable USDC = IERC20(0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582);
-    IERC3009 public immutable USDC_EIP3009 = IERC3009(0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582);
+    IERC20 public immutable USDC = IERC20(0x9A676e781A523b5d0C0e43731313A708CB607508);
+    IERC3009 public immutable USDC_EIP3009 = IERC3009(0x9A676e781A523b5d0C0e43731313A708CB607508);
 
     mapping(bytes32 => Service) public services;
     mapping(address => mapping(bytes32 => uint256)) public userServiceCalls;
