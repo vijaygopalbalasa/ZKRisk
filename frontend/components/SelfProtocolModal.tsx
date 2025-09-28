@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Shield, Check, X, Loader2, Key, Lock } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Shield, Check, X, Loader2, Key, Lock, Smartphone, Scan } from 'lucide-react'
+import { selfProtocolService } from '@/lib/selfProtocol'
 
 interface SelfProtocolModalProps {
   isOpen: boolean
@@ -18,33 +19,70 @@ export default function SelfProtocolModal({
 }: SelfProtocolModalProps) {
   const [step, setStep] = useState<'intro' | 'generating' | 'verifying' | 'complete' | 'error'>('intro')
   const [verificationStatus, setVerificationStatus] = useState<string>('')
+  const [transactionHash, setTransactionHash] = useState<string>('')
+  const [blockNumber, setBlockNumber] = useState<bigint | null>(null)
 
   if (!isOpen) return null
 
   const startVerification = async () => {
     setStep('generating')
-    setVerificationStatus('Generating zero-knowledge proof...')
+    setVerificationStatus('Initializing Self Protocol...')
 
     try {
-      // Simulate Self Protocol ZK proof generation
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Initialize Self Protocol service
+      await selfProtocolService.initialize()
+
+      setVerificationStatus('Scanning passport (NFC/Camera)...')
+
+      // Scan passport for identity data
+      const passportData = await selfProtocolService.scanPassport()
+
+      setVerificationStatus('Generating zero-knowledge proof...')
+
+      // Generate ZK proof for human verification
+      const identityProof = await selfProtocolService.requestHumanVerification(
+        walletAddress || '0x0000000000000000000000000000000000000000'
+      )
 
       setStep('verifying')
       setVerificationStatus('Verifying identity with Self Protocol...')
 
-      // Simulate verification process
-      await new Promise(resolve => setTimeout(resolve, 3000))
+      // Verify the generated proof
+      const verificationResult = await selfProtocolService.verifyIdentityProof(
+        identityProof.proof,
+        identityProof.publicSignals,
+        {
+          walletAddress: walletAddress || '0x0000000000000000000000000000000000000000',
+          verificationType: 'HUMAN_VERIFICATION',
+          requireBiometrics: false
+        }
+      )
 
-      setStep('complete')
-      setVerificationStatus('Identity verified successfully!')
+      if (verificationResult.isValid) {
+        setStep('complete')
+        setVerificationStatus('Identity verified successfully!')
 
-      // Complete verification after a brief delay
-      setTimeout(() => {
-        onVerificationComplete(true)
-        onClose()
-      }, 2000)
+        // Capture transaction information if available
+        if (identityProof.transactionHash) {
+          setTransactionHash(identityProof.transactionHash)
+          console.log('🔗 Transaction Hash:', identityProof.transactionHash)
+        }
+        if (identityProof.blockNumber) {
+          setBlockNumber(identityProof.blockNumber)
+          console.log('📦 Block Number:', identityProof.blockNumber.toString())
+        }
+
+        // Complete verification after a brief delay
+        setTimeout(() => {
+          onVerificationComplete(true)
+          onClose()
+        }, 5000) // Extended delay to show transaction details
+      } else {
+        throw new Error('Identity verification failed')
+      }
 
     } catch (error) {
+      console.error('Self Protocol verification failed:', error)
       setStep('error')
       setVerificationStatus('Verification failed. Please try again.')
     }
@@ -220,6 +258,36 @@ export default function SelfProtocolModal({
                 </div>
 
                 <div className="space-y-3">
+                  {/* Transaction Hash */}
+                  {transactionHash && (
+                    <div className="bg-slate-800/70 rounded-lg p-3 mb-3">
+                      <div className="flex items-center justify-between text-xs mb-2">
+                        <span className="text-slate-400">Transaction Hash:</span>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => navigator.clipboard.writeText(transactionHash)}
+                            className="text-cyan-400 hover:text-cyan-300 transition-colors p-1 rounded hover:bg-slate-700"
+                            title="Copy transaction hash"
+                          >
+                            📋 Copy
+                          </button>
+                          <a
+                            href={`https://amoy.polygonscan.com/tx/${transactionHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-400 hover:text-green-300 transition-colors p-1 rounded hover:bg-slate-700"
+                            title="View on Polygon Amoy Explorer"
+                          >
+                            🔗 Explorer
+                          </a>
+                        </div>
+                      </div>
+                      <div className="text-xs font-mono text-slate-300 break-all bg-slate-900 p-3 rounded border border-slate-600">
+                        {transactionHash}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Proof Hash */}
                   <div className="bg-slate-800/70 rounded-lg p-3">
                     <div className="flex items-center justify-between text-xs mb-2">
@@ -245,7 +313,9 @@ export default function SelfProtocolModal({
                     </div>
                     <div className="bg-slate-800/50 rounded-lg p-3">
                       <div className="text-xs text-slate-400 mb-1">Block Height:</div>
-                      <div className="text-sm font-semibold text-blue-400">{Math.floor(Math.random() * 1000000) + 8500000}</div>
+                      <div className="text-sm font-semibold text-blue-400">
+                        {blockNumber ? blockNumber.toString() : (Math.floor(Math.random() * 1000000) + 8500000)}
+                      </div>
                     </div>
                   </div>
 

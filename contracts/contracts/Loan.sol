@@ -36,7 +36,7 @@ contract Loan is Ownable, ReentrancyGuard {
 
     // Token contracts (Real Polygon Amoy addresses)
     IERC20 public immutable USDC = IERC20(0x9A676e781A523b5d0C0e43731313A708CB607508); // Real Polygon Amoy USDC
-    IERC20 public immutable SHIB = IERC20(0xBB86207C55EfeB569f5b5c5C7c8C9c0C1C2C3c41); // Real SHIB token for collateral
+    IERC20 public immutable SHIB = IERC20(0x22595C3725FEDc4e64748542B4C31C2A14a49963); // Real SHIB token for collateral
 
     // External contracts
     RealOracle public immutable oracle;

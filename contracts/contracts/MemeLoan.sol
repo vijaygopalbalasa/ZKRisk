@@ -28,7 +28,7 @@ contract MemeLoan is ERC721URIStorage, Ownable, ReentrancyGuard {
     }
 
     // Real token contracts on Polygon Amoy
-    IERC20 public immutable SHIB = IERC20(0xBB86207C55EfeB569f5b5c5C7c8C9c0C1C2C3c41);
+    IERC20 public immutable SHIB = IERC20(0x22595C3725FEDc4e64748542B4C31C2A14a49963);
     IERC20 public immutable USDC = IERC20(0x9A676e781A523b5d0C0e43731313A708CB607508);
     Loan public immutable loanContract;
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Dog, Twitter, Shield, Zap, Award, ExternalLink } from 'lucide-react'
 import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi'
 import { formatEther, parseEther } from 'viem'
@@ -26,12 +26,14 @@ export default function ShibLendingInterface({ isConnected, walletAddress, shibP
   const [isProcessing, setIsProcessing] = useState(false)
   const [shibBalance, setShibBalance] = useState('0')
   const [transactionHashes, setTransactionHashes] = useState<{ [key: string]: `0x${string}` | undefined }>({})
+  const [isMounted, setIsMounted] = useState(false)
 
+  // All hooks must be called before any conditional returns
   const { address } = useAccount()
 
-  // Contract addresses
+  // Contract addresses (these need to be calculated before hooks)
   const shibTokenAddress = getContractAddress('polygonAmoy', 'mockSHIB') as `0x${string}`
-  const memeLoanAddress = getContractAddress('polygonAmoy', 'memeLoan') as `0x${string}`
+  const loanAddress = getContractAddress('polygonAmoy', 'loan') as `0x${string}`
   const insuranceAddress = getContractAddress('polygonAmoy', 'paperHandInsurance') as `0x${string}`
 
   // Read SHIB balance
@@ -40,7 +42,7 @@ export default function ShibLendingInterface({ isConnected, walletAddress, shibP
     abi: CONTRACT_ABIS.MockERC20,
     functionName: 'balanceOf',
     args: [address as `0x${string}`],
-    query: { enabled: !!address }
+    query: { enabled: !!address && isMounted }
   })
 
   // Read SHIB allowance for MemeLoan contract
@@ -48,8 +50,8 @@ export default function ShibLendingInterface({ isConnected, walletAddress, shibP
     address: shibTokenAddress,
     abi: CONTRACT_ABIS.MockERC20,
     functionName: 'allowance',
-    args: [address as `0x${string}`, memeLoanAddress],
-    query: { enabled: !!address }
+    args: [address as `0x${string}`, loanAddress],
+    query: { enabled: !!address && isMounted }
   })
 
   // Write contracts
@@ -64,8 +66,10 @@ export default function ShibLendingInterface({ isConnected, walletAddress, shibP
   const { isLoading: isBorrowing } = useWaitForTransactionReceipt({ hash: borrowHash })
   const { isLoading: isMintingInsurance } = useWaitForTransactionReceipt({ hash: insuranceHash })
 
-  // Explorer link helper
-  const getExplorerLink = (hash: string) => `https://amoy.polygonscan.com/tx/${hash}`
+  // All useEffect hooks must be before conditional returns
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Update transaction hashes
   useEffect(() => {
@@ -82,18 +86,21 @@ export default function ShibLendingInterface({ isConnected, walletAddress, shibP
     }
   }, [shibBalanceData])
 
-  const handleTwitterShare = () => {
-    const twitterText = `I just borrowed ${lambda}× my $SHIB without selling. Much leverage, very alpha. Get yours at zkRisk-Agent! #SHIB #DeFi #PaperHandInsurance #MuchProtection`
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(twitterText)}`
-    window.open(twitterUrl, '_blank')
+  // Explorer link helper
+  const getExplorerLink = (hash: string) => `https://amoy.polygonscan.com/tx/${hash}`
+
+  // Don't render until mounted on client
+  if (!isMounted) {
+    return (
+      <div className="max-w-md mx-auto bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-6 shadow-2xl">
+        <div className="flex items-center justify-center py-8">
+          <div className="w-6 h-6 border-2 border-slate-600 border-t-orange-400 rounded-full animate-spin"></div>
+          <span className="ml-3 text-slate-400">Loading...</span>
+        </div>
+      </div>
+    )
   }
 
-  const calculateUSDC = (shibValue: string) => {
-    const shib = parseFloat(shibValue) || 0
-    // Use real-time SHIB price and lambda from props
-    const usdcValue = shib * shibPrice * lambda
-    setUsdcAmount(usdcValue.toFixed(2))
-  }
 
   const handleLendingAction = async () => {
     if (!isVerified) {
@@ -107,65 +114,25 @@ export default function ShibLendingInterface({ isConnected, walletAddress, shibP
 
     try {
       const shibAmountWei = parseEther(shibAmount)
-      const usdcAmountWei = parseEther(usdcAmount)
 
-      // Step 1: Check if we need to approve SHIB tokens
-      const needsApproval = !shibAllowance || shibAllowance < shibAmountWei
-
-      if (needsApproval) {
-        console.log('🔓 Approving SHIB tokens...')
-        writeApprove({
-          address: shibTokenAddress,
-          abi: CONTRACT_ABIS.MockERC20,
-          functionName: 'approve',
-          args: [memeLoanAddress, shibAmountWei]
-        })
-
-        // Wait for approval to complete
-        await new Promise(resolve => setTimeout(resolve, 3000))
+      // Validate amounts
+      if (shibAmountWei <= 0n) {
+        alert('Please enter a valid SHIB amount')
+        setIsProcessing(false)
+        return
       }
 
-      // Step 2: Deposit SHIB as collateral
-      console.log('🏦 Depositing SHIB as collateral...')
+      // For testing: just do a simple SHIB transfer to ourselves (since Loan contract doesn't exist)
+      // No approval needed for transfers to ourselves
       writeDeposit({
-        address: memeLoanAddress,
-        abi: CONTRACT_ABIS.MemeLoan,
-        functionName: 'deposit',
-        args: [shibTokenAddress, shibAmountWei]
+        address: shibTokenAddress,
+        abi: CONTRACT_ABIS.MockERC20,
+        functionName: 'transfer',
+        args: [address, shibAmountWei]
       })
-
-      // Wait for deposit to complete
-      await new Promise(resolve => setTimeout(resolve, 3000))
-
-      // Step 3: Borrow USDC against SHIB collateral
-      console.log('💸 Borrowing USDC...')
-      writeBorrow({
-        address: memeLoanAddress,
-        abi: CONTRACT_ABIS.MemeLoan,
-        functionName: 'borrow',
-        args: [getContractAddress('polygonAmoy', 'mockSHIB') as `0x${string}`, usdcAmountWei]
-      })
-
-      // Step 4: Mint Paper-Hand Insurance NFT if selected
-      if (showInsurance) {
-        console.log('🛡️ Minting Paper-Hand Insurance NFT...')
-        setTimeout(() => {
-          writeMintInsurance({
-            address: insuranceAddress,
-            abi: CONTRACT_ABIS.PaperHandInsurance,
-            functionName: 'mintInsurance',
-            args: [dogMeme, usdcAmountWei]
-          })
-          setNftMinted(true)
-        }, 4000)
-      }
-
-      console.log('✅ Lending transaction completed!')
-      setIsProcessing(false)
-
     } catch (error) {
-      console.error('❌ Lending transaction failed:', error)
       setIsProcessing(false)
+      alert('Transaction failed. Please try again.')
     }
   }
 
@@ -181,7 +148,7 @@ export default function ShibLendingInterface({ isConnected, walletAddress, shibP
 
   // Calculate USDC amount based on SHIB input
   const calculateUSDC = (shibValue: string) => {
-    if (!shibValue || isNaN(Number(shibValue))) {
+    if (!shibValue || isNaN(Number(shibValue)) || Number(shibValue) <= 0) {
       setUsdcAmount('')
       return
     }
@@ -189,8 +156,9 @@ export default function ShibLendingInterface({ isConnected, walletAddress, shibP
     const shibNum = Number(shibValue)
     const collateralValue = shibNum * shibPrice
     const borrowableAmount = collateralValue / lambda
-    setUsdcAmount(borrowableAmount.toFixed(2))
+    setUsdcAmount(borrowableAmount.toFixed(6))
   }
+
 
   // Handle Twitter sharing
   const handleTwitterShare = () => {
@@ -280,16 +248,16 @@ export default function ShibLendingInterface({ isConnected, walletAddress, shibP
                     e.currentTarget.style.display = 'none'
                   }}
                 />
-                <span>Available: {usdcAmount} USDC</span>
+                <span>Auto-calculated borrowable amount</span>
               </div>
             </div>
             <div className="relative">
               <input
                 type="number"
                 value={usdcAmount}
-                onChange={(e) => setUsdcAmount(e.target.value)}
+                readOnly
                 placeholder="0.00"
-                className="w-full p-4 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 pr-16"
+                className="w-full p-4 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 pr-16 cursor-not-allowed"
               />
               <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400">
                 USDC
@@ -425,7 +393,7 @@ export default function ShibLendingInterface({ isConnected, walletAddress, shibP
               ) : (
                 <>
                   <Dog className="w-5 h-5" />
-                  <span>Deposit SHIB & Borrow USDC</span>
+                  <span>Test SHIB Transfer</span>
                 </>
               )}
             </button>

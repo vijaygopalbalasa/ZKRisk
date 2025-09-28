@@ -29,6 +29,11 @@ const SUPPORTED_NETWORKS = {
   CELO_ALFAJORES: 44787
 }
 
+// External services
+const EXTERNAL_SERVICES = {
+  FLUENCE_AI_ENDPOINT: 'http://localhost:5001'
+}
+
 interface WalletInfo {
   address: string
   chainId: number
@@ -506,7 +511,7 @@ export default function Home() {
           <ShibLendingInterface
             isConnected={isWalletConnected}
             walletAddress={walletAddress}
-            shibPrice={realTimeSHIB?.price}
+            shibPrice={realTimeSHIB?.price || 0.000025}
             lambda={realTimeSHIB ? (realTimeSHIB.volatility > 40 ? 1.8 : realTimeSHIB.volatility > 30 ? 1.6 : realTimeSHIB.volatility > 20 ? 1.4 : realTimeSHIB.volatility > 10 ? 1.2 : 1.0) : 1.8}
           />
         </div>
